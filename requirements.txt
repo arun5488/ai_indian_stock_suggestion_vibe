@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+pymongo[srv]
+pymongo
+python-dotenv
+email-validator
+dnspython
+openai
+pyyaml
+httpx
