@@ -8,3 +8,4 @@ dnspython
 openai
 pyyaml
 httpx
+yfinance

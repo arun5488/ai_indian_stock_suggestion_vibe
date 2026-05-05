@@ -1,6 +1,7 @@
 import os
 import secrets
 import logging
+import string
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 
@@ -19,6 +20,8 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 _USER_ID_ATTEMPTS = 50
+_TRANSACTION_ID_ATTEMPTS = 100
+_TRANSACTION_ID_ALPHABET = string.ascii_uppercase + string.digits
 
 
 def _new_unique_customer_id(users_collection: Collection) -> str:
@@ -27,6 +30,16 @@ def _new_unique_customer_id(users_collection: Collection) -> str:
         if users_collection.find_one({"customer_id": candidate}, {"_id": 1}) is None:
             return candidate
     raise RuntimeError("Unable to allocate a unique 10-digit customer_id")
+
+
+def _new_unique_transaction_id(users_collection: Collection) -> str:
+    for _ in range(_TRANSACTION_ID_ATTEMPTS):
+        candidate = "".join(
+            secrets.choice(_TRANSACTION_ID_ALPHABET) for _ in range(12)
+        )
+        if users_collection.find_one({"transaction_id": candidate}, {"_id": 1}) is None:
+            return candidate
+    raise RuntimeError("Unable to allocate a unique 12-char transaction_id")
 
 
 def _migrate_users_indexes(users_collection: Collection) -> None:
@@ -39,6 +52,7 @@ def _migrate_users_indexes(users_collection: Collection) -> None:
             users_collection.drop_index(name)
     users_collection.create_index("email_id")
     users_collection.create_index("customer_id")
+    users_collection.create_index("transaction_id", unique=True, sparse=True)
 
 
 def get_mongo_client() -> MongoClient:
@@ -71,6 +85,7 @@ def ensure_users_collection() -> Collection:
             "bsonType": "object",
             "required": [
                 "customer_id",
+                "transaction_id",
                 "email_id",
                 "date",
                 "budget",
@@ -78,6 +93,7 @@ def ensure_users_collection() -> Collection:
             ],
             "properties": {
                 "customer_id": {"bsonType": "string"},
+                "transaction_id": {"bsonType": "string"},
                 "email_id": {"bsonType": "string"},
                 "date": {"bsonType": "date"},
                 "budget": {"bsonType": ["double", "int", "long", "decimal"]},
@@ -135,6 +151,7 @@ def insert_user_record(
 
     created_user = {
         "customer_id": customer_id,
+        "transaction_id": _new_unique_transaction_id(users_collection),
         "email_id": email_id,
         "date": date,
         "budget": budget,
@@ -176,7 +193,28 @@ def get_customer_last_requests(email_id: str, limit: int = 5) -> list[dict]:
         users_collection.find({"email_id": email_id}).sort("date", -1).limit(limit)
     )
     docs = [normalize_user_document(d) for d in cursor]
-    return [d for d in docs if d is not None]
+    rows = [d for d in docs if d is not None]
+    for row in rows:
+        row.setdefault("transaction_id", "")
+    return rows
+
+
+def update_action_taken_by_transaction(
+    email_id: str,
+    transaction_id: str,
+    date: datetime,
+    action_taken: str,
+) -> bool:
+    users_collection = ensure_users_collection()
+    result = users_collection.update_one(
+        {
+            "email_id": email_id,
+            "transaction_id": transaction_id,
+            "date": date,
+        },
+        {"$set": {"action_taken": action_taken}},
+    )
+    return result.matched_count > 0
 
 
 def list_transactions_for_customer(customer_id: str, limit: int = 200) -> list[dict]:
@@ -197,10 +235,12 @@ def ensure_stock_recommendations_collection() -> Collection:
     if name not in db.list_collection_names():
         db.create_collection(name)
     coll.create_index([("customer_id", 1), ("date", -1)])
+    coll.create_index("transaction_id")
     return coll
 
 
 def insert_stock_recommendation_doc(
+    transaction_id: str,
     customer_id: str,
     date: datetime,
     budget: float,
@@ -208,12 +248,69 @@ def insert_stock_recommendation_doc(
 ) -> None:
     coll = ensure_stock_recommendations_collection()
     doc = {
+        "transaction_id": transaction_id,
         "customer_id": customer_id,
         "date": date,
         "budget": budget,
         "recommendation": recommendation,
     }
     coll.insert_one(doc)
+
+
+def list_prior_suggestion_cycles_for_customer(
+    customer_id: str,
+    exclude_transaction_id: str,
+    *,
+    limit: int = 25,
+) -> list[dict]:
+    """
+    Prior recommendation payloads joined to ledger actions for the reco agent.
+
+    Uses ``transaction_id`` to link ``stock_recommendations`` and ``users`` rows.
+    Omits ``exclude_transaction_id`` (typically the active request cycle).
+    """
+    users_coll = ensure_users_collection()
+    rec_coll = ensure_stock_recommendations_collection()
+    scan_limit = max(1, min(limit * 4, 200))
+    cursor = (
+        rec_coll.find({"customer_id": customer_id})
+        .sort("date", -1)
+        .limit(scan_limit)
+    )
+    out: list[dict] = []
+    seen: set[str] = set()
+
+    for raw in cursor:
+        tid = raw.get("transaction_id")
+        if not tid or tid == exclude_transaction_id or tid in seen:
+            continue
+        ledger = users_coll.find_one(
+            {"customer_id": customer_id, "transaction_id": tid},
+            {"action_taken": 1, "date": 1},
+        )
+        if not ledger:
+            continue
+        action = str(ledger.get("action_taken") or "").strip().lower()
+        if not action:
+            continue
+        rec_map_int: dict[str, int] = {}
+        for k, v in (raw.get("recommendation") or {}).items():
+            try:
+                rec_map_int[str(k).upper()] = int(float(v))
+            except (TypeError, ValueError):
+                continue
+        out.append(
+            {
+                "transaction_id": tid,
+                "date": ledger.get("date"),
+                "action_taken": action,
+                "recommended_stocks": rec_map_int,
+            }
+        )
+        seen.add(tid)
+        if len(out) >= limit:
+            break
+    return out
 
 
 def ping_mongodb() -> None:

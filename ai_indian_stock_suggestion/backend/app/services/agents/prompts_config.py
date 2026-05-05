@@ -6,10 +6,14 @@ from typing import Any
 
 import yaml
 
-from ai_indian_stock_suggestion.backend.app.config import AGENT_PROMPTS_YAML_PATH
+from ai_indian_stock_suggestion.backend.app.config import (
+    AGENT_PROMPTS_YAML_PATH,
+    XFACTOR_YAML_PATH,
+)
 
 _raw_config_cache: dict[str, Any] | None = None
 _cached_path: Path | None = None
+_xfactor_cache: tuple[Path, str] | None = None
 
 
 def _default_yaml_path() -> Path:
@@ -20,6 +24,31 @@ def prompts_yaml_path() -> Path:
     if AGENT_PROMPTS_YAML_PATH:
         return Path(AGENT_PROMPTS_YAML_PATH).expanduser()
     return _default_yaml_path()
+
+
+def xfactor_yaml_path() -> Path:
+    if XFACTOR_YAML_PATH:
+        return Path(XFACTOR_YAML_PATH).expanduser()
+    return Path(__file__).resolve().parent / "Xfactor.yaml"
+
+
+def load_xfactor_stock_research_block() -> str:
+    """Extra system-prompt block for stock_research; empty if file missing or unset."""
+    global _xfactor_cache
+    path = xfactor_yaml_path().resolve()
+    if _xfactor_cache is not None and _xfactor_cache[0] == path:
+        return _xfactor_cache[1]
+    if not path.is_file():
+        _xfactor_cache = (path, "")
+        return ""
+    raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    block = ""
+    if isinstance(raw, dict):
+        block = str(raw.get("stock_research_x_factor", "")).strip()
+    elif isinstance(raw, str):
+        block = raw.strip()
+    _xfactor_cache = (path, block)
+    return block
 
 
 def load_agents_config() -> dict[str, Any]:
@@ -66,6 +95,11 @@ def resolve_agent_prompt(agent_key: str) -> AgentRuntimePrompt:
     system_prompt = str(cfg.get("system_prompt", "")).strip()
     if not system_prompt:
         raise ValueError(f"Missing or empty system_prompt for agent {agent_key!r}")
+
+    if agent_key == "stock_research":
+        xf = load_xfactor_stock_research_block()
+        if xf:
+            system_prompt = f"{system_prompt}\n\n{xf}"
 
     return AgentRuntimePrompt(
         key=agent_key,

@@ -82,6 +82,33 @@ Without `OPENAI_API_KEY`: `pipeline_status` is `skipped_no_api_key` and recommen
 
 Query: `email_id` (required), `limit` (optional, default 5, max 50). Returns recent interaction rows (newest first).
 
+### `PUT /users/update-action`
+
+Updates `action_taken` for an existing suggestion row matched by `email_id`, `transaction_id`, and `date`.
+
+**Body (JSON)**
+
+```json
+{
+  "email_id": "abc@gmail.com",
+  "transaction_id": "A1B2C3D4E5F6",
+  "date": "2-May-2026",
+  "action_taken": "accepted"
+}
+```
+
+`action_taken` supports only `accepted` or `rejected`.
+
+`transaction_id` is returned in the `POST /users/create` response and is a 12-character alphanumeric value.
+
+**Response**
+
+```json
+{
+  "msg": "action updated"
+}
+```
+
 ## Behaviour and data model (short)
 
 - **Users collection**: Multiple documents per email / `customer_id` (interaction history).

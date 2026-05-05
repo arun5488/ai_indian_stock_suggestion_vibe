@@ -16,6 +16,10 @@ class ResearchOutputState(BaseModel):
     budget: float
     stock_code: str = Field(description="Suggested NSE ticker, uppercase")
     research: str
+    current_price_inr: float | None = Field(
+        default=None,
+        description="Approx. last close in INR after feed enrichment",
+    )
 
 
 class BehaviourAnalysisOutput(BaseModel):
@@ -31,6 +35,7 @@ class RecommendationOutputState(BaseModel):
     customer_id: str
     stock_code: str
     recommendation: str
+    current_price_inr: float | None = Field(default=None)
     quantity: int = Field(ge=1, description="Suggested number of shares to buy given budget framing")
     time_period: str = Field(description="Suggested holding horizon (text, e.g. 6–12 months)")
 
@@ -38,6 +43,7 @@ class RecommendationOutputState(BaseModel):
 class StockRecommendationRecord(BaseModel):
     """Stored document shape for stock_recommendations collection."""
 
+    transaction_id: str
     customer_id: str
     date: datetime
     budget: float
@@ -89,6 +95,7 @@ class BehaviourAnalysisAgentLLM(BaseModel):
 class _RecoItemLLM(BaseModel):
     stock_code: str
     recommendation: str
+    current_price_inr: float | None = None
     quantity: int = Field(ge=1)
     time_period: str
 

@@ -11,6 +11,8 @@ MONGODB_DB_NAME = os.getenv("MONGODB_DB_NAME", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 # Optional override: absolute path to a copy of agents_prompts.yaml
 AGENT_PROMPTS_YAML_PATH = os.getenv("AGENT_PROMPTS_YAML_PATH", "")
+# Optional override: stock_research X-factor tuning (defaults next to agents_prompts.yaml)
+XFACTOR_YAML_PATH = os.getenv("XFACTOR_YAML_PATH", "")
 
 # Tavily (live web enrichment for stock_research agent)
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY", "")
