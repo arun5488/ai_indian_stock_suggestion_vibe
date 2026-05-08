@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}API Console{% endblock %} · AI Indian Stock Suggestion</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="sidebar-brand">Stock API</div>
+        <nav class="sidebar-nav">
+          <a href="{{ url_for('page_health') }}" class="nav-item {% if request.endpoint in ('index', 'page_health') %}active{% endif %}">GET /health</a>
+          <a href="{{ url_for('page_create_user') }}" class="nav-item {% if request.endpoint == 'page_create_user' %}active{% endif %}">POST /users/create</a>
+          <a href="{{ url_for('page_customer_last_requests') }}" class="nav-item {% if request.endpoint == 'page_customer_last_requests' %}active{% endif %}">GET /users/customer-last-requests</a>
+          <a href="{{ url_for('page_update_action') }}" class="nav-item {% if request.endpoint == 'page_update_action' %}active{% endif %}">PUT /users/update-action</a>
+        </nav>
+      </aside>
+      <main class="main">
+        <header class="main-header">
+          <h1>{% block heading %}{% endblock %}</h1>
+          <p class="muted">{% block subheading %}{% endblock %}</p>
+        </header>
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Customer last requests{% endblock %}
+{% block heading %}GET /users/customer-last-requests{% endblock %}
+{% block subheading %}Recent ledger rows for an email (newest first).{% endblock %}
+{% block content %}
+<section class="panel">
+  <form id="form-last" class="form-grid">
+    <label>
+      Email
+      <input type="email" name="email_id" required autocomplete="email" placeholder="you@example.com" />
+    </label>
+    <label>
+      Limit
+      <input type="number" name="limit" min="1" max="50" value="5" />
+    </label>
+    <div class="form-actions">
+      <button type="submit" class="btn primary">Fetch</button>
+    </div>
+  </form>
+  <p class="hint">JSON array appears below without navigation.</p>
+</section>
+<section class="panel result-panel">
+  <h2>Response</h2>
+  <pre id="out" class="json-out empty" aria-live="polite">No request yet.</pre>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+  const form = document.getElementById("form-last");
+  const out = document.getElementById("out");
+  form.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const fd = new FormData(form);
+    const email = encodeURIComponent(fd.get("email_id"));
+    const limit = encodeURIComponent(fd.get("limit") || "5");
+    const url = `{{ url_for('api_customer_last_requests') }}?email_id=${email}&limit=${limit}`;
+    out.textContent = "Loading…";
+    out.classList.remove("empty");
+    try {
+      const r = await fetch(url);
+      const data = await r.json();
+      out.textContent = JSON.stringify(data, null, 2);
+    } catch (e) {
+      out.textContent = String(e);
+    }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Health{% endblock %}
+{% block heading %}GET /health{% endblock %}
+{% block subheading %}Liveness check — same behaviour as the FastAPI route.{% endblock %}
+{% block content %}
+<section class="panel">
+  <button type="button" class="btn primary" id="btn-run">Check health</button>
+  <p class="hint">Result appears below without leaving this page.</p>
+</section>
+<section class="panel result-panel">
+  <h2>Response</h2>
+  <pre id="out" class="json-out empty" aria-live="polite">No request yet.</pre>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+  const out = document.getElementById("out");
+  document.getElementById("btn-run").addEventListener("click", async () => {
+    out.textContent = "Loading…";
+    out.classList.remove("empty");
+    try {
+      const r = await fetch("{{ url_for('api_health') }}");
+      const data = await r.json();
+      out.textContent = JSON.stringify(data, null, 2);
+    } catch (e) {
+      out.textContent = String(e);
+    }
+  });
+</script>
+{% endblock %}

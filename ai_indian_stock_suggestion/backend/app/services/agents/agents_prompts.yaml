@@ -77,6 +77,7 @@ agents:
           ... exactly 3 rows covering all three research tickers exactly once
         ]
       }
+      you can suggest a combination of stocks to the customer. sum total of the quantities should be equal to the budget.
 
       Quantities assume whole-share lots on NSE; keep amounts modest vs budget; disclaim that live prices/fees alter sizing.
       This is illustrative research, never execution advice.

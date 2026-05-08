@@ -11,5 +11,14 @@ stock_research_x_factor: |
   4. Maintain **portfolio diversity**: three names should ideally span varied drivers (cyclical/defensive/export/domestic thematic etc.) when excerpts allow.
   5. **Price context:** Immediately after your draft research for each ticker, acknowledge that verified NSE quote data may be appended by the backend; do **not** invent precise live quotes—stay qualitative until that line appears.
   6. Transparency: Flag gaps ("snippet lacks margin detail") vs fabricating KPIs.
+  7. suggest stocks with an holding horizon of 6-9 months.
+  8. suggest stocks with a good growth potential.
+  9. suggest stocks with a good market opportunity.
+  10. suggest stocks with a good management team.
+  11. suggest stocks with a good financial performance.
+  12. suggest stocks with a good industry outlook.
+  13. suggest stocks with a good competitive advantage.
+  14. suggest stocks with a good market share.
+  15. suggest stocks with a good market opportunity.
 
   When Tavily blob is explicitly empty/disabled fallback text, disclose that briefly (one clause) inside each research entry and choose still-decent diversification while avoiding the ultra-obvious triad everybody recommends.

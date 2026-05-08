@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Update action{% endblock %}
+{% block heading %}PUT /users/update-action{% endblock %}
+{% block subheading %}Set action_taken for a row matched by email, transaction_id, and date.{% endblock %}
+{% block content %}
+<section class="panel">
+  <form id="form-update" class="form-grid">
+    <label>
+      Email
+      <input type="email" name="email_id" required autocomplete="email" placeholder="you@example.com" />
+    </label>
+    <label>
+      Transaction ID
+      <input type="text" name="transaction_id" required placeholder="from a prior create response" />
+    </label>
+    <label>
+      Date (DD-MMM-YYYY)
+      <input type="text" name="date" required placeholder="08-May-2026" />
+    </label>
+    <label>
+      Action taken
+      <input type="text" name="action_taken" required placeholder="e.g. bought, skipped" />
+    </label>
+    <div class="form-actions">
+      <button type="submit" class="btn primary">Submit</button>
+    </div>
+  </form>
+  <p class="hint">Result shows below on this page.</p>
+</section>
+<section class="panel result-panel">
+  <h2>Response</h2>
+  <pre id="out" class="json-out empty" aria-live="polite">No request yet.</pre>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+  const form = document.getElementById("form-update");
+  const out = document.getElementById("out");
+  form.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const fd = new FormData(form);
+    const body = {
+      email_id: fd.get("email_id"),
+      transaction_id: fd.get("transaction_id"),
+      date: fd.get("date"),
+      action_taken: fd.get("action_taken"),
+    };
+    out.textContent = "Loading…";
+    out.classList.remove("empty");
+    try {
+      const r = await fetch("{{ url_for('api_update_action') }}", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await r.json();
+      out.textContent = JSON.stringify(data, null, 2);
+    } catch (e) {
+      out.textContent = String(e);
+    }
+  });
+</script>
+{% endblock %}
